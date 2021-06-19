@@ -26,6 +26,44 @@ def insert_headers(sheet, release, ticket_sheet=False):
     sheet.insert_rows(3)
 
 
+def add_to_doc_sheet(issue, sheet, row):
+    # Document numbers and done documentation
+    if issue['fields']['customfield_10029']:
+        more_than_1 = False
+        docs = ""
+        done = ""
+        for doc in issue['fields']['customfield_10029']:
+            if more_than_1:
+                docs += f", {doc}"
+                if issue['fields']['customfield_10031'] and doc in issue['fields']['customfield_10031']:
+                    done += ", Yes"
+                else:
+                    done += ", No"
+            else:
+                docs = doc
+                if issue['fields']['customfield_10031'] and doc in issue['fields']['customfield_10031']:
+                    done = "Yes"
+                else:
+                    done = "No"
+            more_than_1 = True
+        sheet[f'A{row}'].value = docs
+        sheet[f'B{row}'].value = done
+    else:
+        sheet[f'A{row}'].value = "-"
+        sheet[f'B{row}'].value = "-"
+    # Assignee
+    if issue['fields']['assignee']:
+        sheet[f'C{row}'].value = issue['fields']['assignee']['displayName']
+    else:
+        sheet[f'C{row}'].value = "-"
+    # Jira ticket number
+    sheet[f'D{row}'].value = issue['key']
+    # Summary/description
+    sheet[f'E{row}'].value = issue['fields']['summary']
+    # Status of the ticket
+    sheet[f'F{row}'].value = issue['fields']['status']['name']
+
+
 def api_request(url):
     auth = HTTPBasicAuth(username, password)
     headers = {
@@ -47,22 +85,31 @@ if __name__ == "__main__":
     doc_file = "C:\\Users\\kiki\\OneDrive\\Documentation sheet.xlsx"
     issue_file = "C:\\Users\\kiki\\OneDrive\\Ticket sheet.xlsx"
 
-    # doc_wb = openpyxl.load_workbook(doc_file)
+    doc_wb = openpyxl.load_workbook(doc_file)
+    sheet_A = doc_wb['Team A']
     # for sheet in doc_wb:
     #     insert_headers(sheet, "Release 1")
     # doc_wb.save(doc_file)
 
-    # issue_wb = openpyxl.load_workbook(issue_file)
+    issue_wb = openpyxl.load_workbook(issue_file)
     # for sheet in issue_wb:
     #     insert_headers(sheet, "Release 1", ticket_sheet=True)
     # issue_wb.save(issue_file)
 
     # Getting all issues in a filter
 
-    url = 'https://jira-doc-tracker.atlassian.net/rest/api/3/filter/search?filterName="Team A R1"'
-    query = api_request(url)
-    teamA_filter = query['values'][0]['self']
-    a_filter = api_request(teamA_filter)['jql']
-    a_issues = api_request(f"https://jira-doc-tracker.atlassian.net/rest/api/3/search?jql={a_filter}")
-    print(json.dumps(a_issues, sort_keys=True, indent=4))
+    query_A = api_request('https://jira-doc-tracker.atlassian.net/rest/api/3/filter/search?filterName="Team A R1"')
+    filter_A = query_A['values'][0]['self']
+    jql_A = api_request(filter_A)['jql']
+    issues_A = api_request(f"https://jira-doc-tracker.atlassian.net/rest/api/3/search?jql={jql_A}")
+    print(json.dumps(issues_A, sort_keys=True, indent=4))
+
+    # Inserting all documentation issues in a sheet
+
+    for issue in issues_A['issues']:
+        if issue['fields']['customfield_10030'][0]['value'] == "Yes":
+            sheet_A.insert_rows(3)
+            add_to_doc_sheet(issue, sheet_A, 3)
+
+    doc_wb.save(doc_file)
     # print(json.dumps(data, sort_keys=True, indent=4)) I'm keeping this for the formatting
