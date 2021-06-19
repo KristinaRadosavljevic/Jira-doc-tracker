@@ -29,11 +29,10 @@ def insert_headers(sheet, release, ticket_sheet=False):
 def add_to_doc_sheet(issue, sheet, row):
     # Document numbers and done documentation
     if issue['fields']['customfield_10029']:
-        more_than_1 = False
         docs = ""
         done = ""
         for doc in issue['fields']['customfield_10029']:
-            if more_than_1:
+            if docs:
                 docs += f", {doc}"
                 if issue['fields']['customfield_10031'] and doc in issue['fields']['customfield_10031']:
                     done += ", Yes"
@@ -45,7 +44,6 @@ def add_to_doc_sheet(issue, sheet, row):
                     done = "Yes"
                 else:
                     done = "No"
-            more_than_1 = True
         sheet[f'A{row}'].value = docs
         sheet[f'B{row}'].value = done
     else:
