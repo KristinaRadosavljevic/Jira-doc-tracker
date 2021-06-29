@@ -10,7 +10,7 @@ class InitialView(ttk.Frame):
         self.parent.title("Jira Documentation Tracker")
         ttk.Button(self, text="Add a New Project", command=self.add_project)\
             .grid(row=0, column=0, padx=20, pady=20)
-        ttk.Button(self, text="Update All Sheets", command=self.update_sheets)\
+        ttk.Button(self, text="Update the Sheet", command=self.update_sheets)\
             .grid(row=0, column=1, pady=20)
         ttk.Button(self, text="Review Jira Issues", command=self.review_issues)\
             .grid(row=0, column=2, padx=20, pady=20)
@@ -28,11 +28,22 @@ class InitialView(ttk.Frame):
         JiraIssues(self.parent).pack(side="top", fill="both", expand=True)
 
 
-class NewProject(ttk.Frame):
+class SecondaryView(ttk.Frame):
 
     def __init__(self, parent, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
+        self.back_button = ttk.Button(self, text="Back", command=self.back)
+
+    def back(self):
+        self.destroy()
+        InitialView(self.parent).pack(side="top", fill="both", expand=True)
+
+
+class NewProject(SecondaryView):
+
+    def __init__(self, parent, *args, **kwargs):
+        SecondaryView.__init__(self, parent, *args, **kwargs)
         self.parent.title("Add a New Project")
         ttk.Label(self, text="Enter the release number:")\
             .grid(row=0, column=0, columnspan=5, padx=20, pady=10)
@@ -45,27 +56,36 @@ class NewProject(ttk.Frame):
             .grid(row=2, column=0, columnspan=5, padx=20, pady=10)
         ttk.Button(self, text="Enter")\
             .grid(row=3, column=1, padx=20, pady=10)
-        ttk.Button(self, text="Back", command=self.back)\
-            .grid(row=3, column=3, padx=20, pady=10)
-
-    def back(self):
-        self.destroy()
-        InitialView(self.parent).pack(side="top", fill="both", expand=True)
+        self.back_button.grid(row=3, column=3, padx=20, pady=10)
 
 
-class UpdateSheets(ttk.Frame):
+class UpdateSheets(SecondaryView):
 
     def __init__(self, parent, *args, **kwargs):
-        ttk.Frame.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
-        self.parent.title("Update All Sheets")
+        SecondaryView.__init__(self, parent, *args, **kwargs)
+        self.parent.title("Update the Sheet")
+        self.input_frame = ttk.Frame(self, relief="groove", width=350, height=100)
+        self.input_frame.grid(row=0, column=0, columnspan=2, padx=15, pady=10, ipady=10)
+        ttk.Label(self, text="- or -", justify="center")\
+            .grid(row=1, column=0, columnspan=2)
+        ttk.Button(self, text="Update All Sheets")\
+            .grid(row=2, column=0, columnspan=2, padx=20, pady=15)
+        self.back_button.grid(row=3, column=1, padx=20, pady=10, sticky="e")
+        ttk.Label(self.input_frame, text="Select a team:", justify="center")\
+            .grid(row=0, column=0, padx=15, pady=5)
+        self.team = tk.StringVar()
+        self.teams = ("Team A", "Team B", "Team C")
+        ttk.Combobox(self.input_frame, values=self.teams, state="readonly", textvariable=self.team)\
+            .grid(row=1, column=0, padx=15, pady=5)
+        self.team.set("Team A")
+        ttk.Button(self.input_frame, text="Update")\
+            .grid(row=2, column=0, padx=15, pady=5)
 
 
-class JiraIssues(ttk.Frame):
+class JiraIssues(SecondaryView):
 
     def __init__(self, parent, *args, **kwargs):
-        ttk.Frame.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
+        SecondaryView.__init__(self, parent, *args, **kwargs)
         self.parent.title("Review Jira Issues")
 
 
