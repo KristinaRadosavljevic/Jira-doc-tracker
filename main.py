@@ -104,10 +104,10 @@ if __name__ == "__main__":
 
     # Inserting all documentation issues in a sheet
 
-    for issue in issues_A['issues']:
-        if issue['fields']['customfield_10030'][0]['value'] == "Yes":
-            sheet_A.insert_rows(3)
-            add_to_doc_sheet(issue, sheet_A, 3)
+    # for issue in issues_A['issues']:
+    #     if issue['fields']['customfield_10030'][0]['value'] == "Yes":
+    #         sheet_A.insert_rows(3)
+    #         add_to_doc_sheet(issue, sheet_A, 3)
 
     doc_wb.save(doc_file)
     # print(json.dumps(data, sort_keys=True, indent=4)) I'm keeping this for the formatting
