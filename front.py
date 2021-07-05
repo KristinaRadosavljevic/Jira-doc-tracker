@@ -95,34 +95,77 @@ class JiraIssues(SecondaryView):
         SecondaryView.__init__(self, parent, *args, **kwargs)
         self.parent.title("Review Jira Issues")
         self.team_frame("Find Issues", self.find_issues)
-        self.new_frame = ttk.LabelFrame(self, text="New Issues")
+        self.new_frame = ttk.LabelFrame(self, text="New Issues", height=200)
         self.new_frame.grid(row=1, column=0, columnspan=2, padx=15, pady=10, ipady=10)
         self.new_ph = ttk.Label(self.new_frame, text="Select a team and click 'Find Issues'.",
                                 foreground="grey")
         self.new_ph.grid(row=0, column=0, padx=10, pady=10)
         self.done_frame = ttk.LabelFrame(self, text="Done Issues")
         self.done_frame.grid(row=2, column=0, columnspan=2, padx=15, pady=10, ipady=10)
-        ttk.Label(self.done_frame, text="Select a team and click 'Find Issues'.", foreground="grey") \
-            .grid(row=0, column=0, padx=10, pady=10)
+        self.done_ph = ttk.Label(self.done_frame, text="Select a team and click 'Find Issues'.", foreground="grey")
+        self.done_ph.grid(row=0, column=0, padx=10, pady=10)
+        self.new_issues = []
+        self.new_row = 3
+        self.done_issues = []
+        self.done_row = 3
 
     def find_issues(self, team):
         self.new_ph.destroy()
-        label = IssueRow(self.new_frame, "PC-2", "Summary", "Kristina", "Done")
-        label.grid(row=0, column=0)
+        row = 0
+        for _ in range(5):
+            if row < 3:
+                IssueRow(self.new_frame, "PC-2", "Summary" * 6).grid(row=row, column=0)
+                row += 1
+            else:
+                self.new_issues.append(("PC-2", "New one"))
+        self.new_frame.config(text=f"New Issues ({len(self.new_issues)} more)")
+
+        self.done_ph.destroy()
+        row = 0
+        for _ in range(5):
+            if row < 3:
+                IssueRow(self.done_frame, "PC-2", "Summary" * 6).grid(row=row, column=0)
+                row += 1
+            else:
+                self.done_issues.append(("PC-2", "New one"))
+        self.done_frame.config(text=f"Done Issues ({len(self.done_issues)} more)")
+
+    def display_issue(self):
+
+        # TODO: Not implemented for the Done Issues frame. Make a class for these frames.
+
+        if self.new_issues:
+            IssueRow(self.new_frame, self.new_issues[0][0], self.new_issues[0][1])\
+                .grid(row=self.new_row, column=0)
+            del self.new_issues[0]
+            self.new_row += 1
+            if self.new_issues:
+                self.new_frame.config(text=f"New Issues ({len(self.new_issues)} more)")
+            else:
+                self.new_frame.config(text="New Issues")
 
 
 class IssueRow(ttk.Frame):
 
-    def __init__(self, parent, issue_nbr, summary, assignee, status, *args, **kwargs):
+    def __init__(self, parent, issue_nbr, summary, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
         self.issue_nbr = issue_nbr
         self.link = ttk.Label(self, text=issue_nbr, foreground="blue",
                               font=('Arial', 10, 'underline'), cursor="hand2")
-        self.link.grid(row=0, column=0)
+        self.link.grid(row=0, column=0, padx=5, pady=5)
         self.link.bind('<Button-1>', self.open_link)
+        ttk.Label(self, text=summary, wraplength=250).grid(row=0, column=1, padx=5, pady=5)
+        ttk.Button(self, text="Add", command=self.delete_and_add).grid(row=0, column=2, padx=5, pady=5)
+        ttk.Button(self, text="Ignore").grid(row=0, column=3, padx=5, pady=5)
+        ttk.Button(self, text="Leave for Later").grid(row=0, column=4, padx=5, pady=5)
 
     def open_link(self, event):
         webbrowser.open_new(f"https://jira-doc-tracker.atlassian.net/browse/{self.issue_nbr}")
+
+    def delete_and_add(self):
+        self.destroy()
+        self.parent.master.display_issue()
 
 
 if __name__ == "__main__":
