@@ -9,11 +9,11 @@ class InitialView(ttk.Frame):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.parent.title("Jira Documentation Tracker")
-        ttk.Button(self, text="Add a New Project", command=self.add_project)\
+        ttk.Button(self, text="Add a New Project", command=self.add_project) \
             .grid(row=0, column=0, padx=20, pady=20)
-        ttk.Button(self, text="Update the Sheet", command=self.update_sheets)\
+        ttk.Button(self, text="Update the Sheet", command=self.update_sheets) \
             .grid(row=0, column=1, pady=20)
-        ttk.Button(self, text="Review Jira Issues", command=self.review_issues)\
+        ttk.Button(self, text="Review Jira Issues", command=self.review_issues) \
             .grid(row=0, column=2, padx=20, pady=20)
 
     def add_project(self):
@@ -59,16 +59,16 @@ class NewProject(SecondaryView):
     def __init__(self, parent, *args, **kwargs):
         SecondaryView.__init__(self, parent, *args, **kwargs)
         self.parent.title("Add a New Project")
-        ttk.Label(self, text="Enter the release number:")\
+        ttk.Label(self, text="Enter the release number:") \
             .grid(row=0, column=0, columnspan=5, padx=20, pady=10)
         self.entry = ttk.Entry(self, width=20)
         self.entry.grid(row=1, column=0, columnspan=5, padx=20, pady=10)
         ttk.Label(self,
                   text="Note: Make sure that all the filters for this project are set up in Jira"
                        " and that they are correctly named.",
-                  wraplength=350, justify="center", foreground="grey")\
+                  wraplength=350, justify="center", foreground="grey") \
             .grid(row=2, column=0, columnspan=5, padx=20, pady=10)
-        ttk.Button(self, text="Enter")\
+        ttk.Button(self, text="Enter") \
             .grid(row=3, column=1, padx=20, pady=10)
         self.back_button.grid(row=3, column=3, padx=20, pady=10)
 
@@ -79,9 +79,9 @@ class UpdateSheets(SecondaryView):
         SecondaryView.__init__(self, parent, *args, **kwargs)
         self.parent.title("Update the Sheet")
         self.team_frame("Update", self.update_sheet)
-        ttk.Label(self, text="- or -", justify="center")\
+        ttk.Label(self, text="- or -", justify="center") \
             .grid(row=1, column=0, columnspan=2)
-        ttk.Button(self, text="Update All Sheets")\
+        ttk.Button(self, text="Update All Sheets") \
             .grid(row=2, column=0, columnspan=2, padx=20, pady=15)
         self.back_button.grid(row=3, column=1, padx=20, pady=10, sticky="e")
 
@@ -95,54 +95,48 @@ class JiraIssues(SecondaryView):
         SecondaryView.__init__(self, parent, *args, **kwargs)
         self.parent.title("Review Jira Issues")
         self.team_frame("Find Issues", self.find_issues)
-        self.new_frame = ttk.LabelFrame(self, text="New Issues", height=200)
-        self.new_frame.grid(row=1, column=0, columnspan=2, padx=15, pady=10, ipady=10)
-        self.new_ph = ttk.Label(self.new_frame, text="Select a team and click 'Find Issues'.",
-                                foreground="grey")
-        self.new_ph.grid(row=0, column=0, padx=10, pady=10)
-        self.done_frame = ttk.LabelFrame(self, text="Done Issues")
-        self.done_frame.grid(row=2, column=0, columnspan=2, padx=15, pady=10, ipady=10)
-        self.done_ph = ttk.Label(self.done_frame, text="Select a team and click 'Find Issues'.", foreground="grey")
-        self.done_ph.grid(row=0, column=0, padx=10, pady=10)
-        self.new_issues = []
-        self.new_row = 3
-        self.done_issues = []
-        self.done_row = 3
+        self.new_frame = IssueFrame(self, text="New Issues")
+        self.new_frame.grid(row=1, column=0, columnspan=2, padx=15, pady=10, ipady=10, ipadx=10)
+        self.done_frame = IssueFrame(self, text="Done Issues")
+        self.done_frame.grid(row=2, column=0, columnspan=2, padx=15, pady=10, ipady=10, ipadx=10)
 
     def find_issues(self, team):
-        self.new_ph.destroy()
-        row = 0
-        for _ in range(5):
-            if row < 3:
-                IssueRow(self.new_frame, "PC-2", "Summary" * 6).grid(row=row, column=0)
-                row += 1
-            else:
-                self.new_issues.append(("PC-2", "New one"))
-        self.new_frame.config(text=f"New Issues ({len(self.new_issues)} more)")
+        self.new_frame.populate()
+        self.done_frame.populate()
 
-        self.done_ph.destroy()
-        row = 0
-        for _ in range(5):
+
+class IssueFrame(ttk.LabelFrame):
+
+    def __init__(self, parent, *args, **kwargs):
+        ttk.LabelFrame.__init__(self, parent, *args, **kwargs)
+        self.placeholder = ttk.Label(self, text="Select a team and click 'Find Issues'.",
+                                     foreground="grey")
+        self.placeholder.pack()
+        self.issues = []
+        self.row = 3
+
+    def populate(self):
+        for item in self.winfo_children():
+            item.destroy()
+        for row in range(5):
             if row < 3:
-                IssueRow(self.done_frame, "PC-2", "Summary" * 6).grid(row=row, column=0)
-                row += 1
+                IssueRow(self, "PC-2", "Summary" * 6).pack()
             else:
-                self.done_issues.append(("PC-2", "New one"))
-        self.done_frame.config(text=f"Done Issues ({len(self.done_issues)} more)")
+                self.issues.append(("PC-2", "New one"))
+        self.config(text=f"New Issues ({len(self.issues)} more)")
 
     def display_issue(self):
-
-        # TODO: Not implemented for the Done Issues frame. Make a class for these frames.
-
-        if self.new_issues:
-            IssueRow(self.new_frame, self.new_issues[0][0], self.new_issues[0][1])\
-                .grid(row=self.new_row, column=0)
-            del self.new_issues[0]
-            self.new_row += 1
-            if self.new_issues:
-                self.new_frame.config(text=f"New Issues ({len(self.new_issues)} more)")
+        if self.issues:
+            IssueRow(self, self.issues[0][0], self.issues[0][1]) \
+                .pack()
+            del self.issues[0]
+            self.row += 1
+            if self.issues:
+                self.config(text=f"New Issues ({len(self.issues)} more)")
             else:
-                self.new_frame.config(text="New Issues")
+                self.config(text="New Issues")
+        if not self.winfo_children():
+            ttk.Label(self, text="No more issues for this team.", foreground="grey").pack()
 
 
 class IssueRow(ttk.Frame):
@@ -157,15 +151,15 @@ class IssueRow(ttk.Frame):
         self.link.bind('<Button-1>', self.open_link)
         ttk.Label(self, text=summary, wraplength=250).grid(row=0, column=1, padx=5, pady=5)
         ttk.Button(self, text="Add", command=self.delete_and_add).grid(row=0, column=2, padx=5, pady=5)
-        ttk.Button(self, text="Ignore").grid(row=0, column=3, padx=5, pady=5)
-        ttk.Button(self, text="Leave for Later").grid(row=0, column=4, padx=5, pady=5)
+        ttk.Button(self, text="Ignore", command=self.delete_and_add).grid(row=0, column=3, padx=5, pady=5)
+        ttk.Button(self, text="Leave for Later", command=self.delete_and_add).grid(row=0, column=4, padx=5, pady=5)
 
     def open_link(self, event):
         webbrowser.open_new(f"https://jira-doc-tracker.atlassian.net/browse/{self.issue_nbr}")
 
     def delete_and_add(self):
         self.destroy()
-        self.parent.master.display_issue()
+        self.parent.display_issue()
 
 
 if __name__ == "__main__":
