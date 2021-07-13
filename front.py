@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 import webbrowser
 
+import main
+
 
 class InitialView(ttk.Frame):
 
@@ -46,10 +48,10 @@ class SecondaryView(ttk.Frame):
         ttk.Label(input_frame, text="Select a team:", justify="center") \
             .grid(row=0, column=0, padx=15, pady=5)
         team = tk.StringVar()
-        teams = ("Team A", "Team B", "Team C")
+        teams = ("Team A", "Team B", "Team C")  # maybe this can be extracted programmatically
         ttk.Combobox(input_frame, values=teams, state="readonly", textvariable=team) \
             .grid(row=1, column=0, padx=15, pady=5)
-        team.set("Team A")
+        team.set(teams[0])
         ttk.Button(input_frame, text=label, command=lambda: command(team.get())) \
             .grid(row=2, column=0, padx=15, pady=5)
 
@@ -86,7 +88,9 @@ class UpdateSheets(SecondaryView):
         self.back_button.grid(row=3, column=1, padx=20, pady=10, sticky="e")
 
     def update_sheet(self, team):
-        pass
+        # This is just a placeholder functionality
+        filter_name = team + " R1"
+        print(main.get_issues(filter_name, "Yes"))
 
 
 class JiraIssues(SecondaryView):
@@ -118,7 +122,7 @@ class IssueFrame(ttk.LabelFrame):
     def populate(self):
         for item in self.winfo_children():
             item.destroy()
-        for row in range(5):
+        for row in range(5):  # Modify this for loop when everything's in place
             if row < 3:
                 IssueRow(self, "PC-2", "Summary" * 6).pack()
             else:
@@ -158,6 +162,8 @@ class IssueRow(ttk.Frame):
         webbrowser.open_new(f"https://jira-doc-tracker.atlassian.net/browse/{self.issue_nbr}")
 
     def delete_and_add(self):
+        # This method is meant to be used inside the specific methods for each button
+        # Once this is in place, update the command property for the buttons
         self.destroy()
         self.parent.display_issue()
 

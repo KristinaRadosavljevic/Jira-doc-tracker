@@ -76,8 +76,23 @@ def api_request(url):
     return response.json()
 
 
-if __name__ == "__main__":
+def get_issues(filter_name, tagged, start=0):
+    query = api_request(f'https://jira-doc-tracker.atlassian.net/rest/api/3/filter/search?filterName="{filter_name}"')
+    jira_filter = query['values'][0]['self']
+    jql = api_request(jira_filter)['jql']
+    index = jql.find("ORDER BY") - 1
+    new_jql = jql[0:index] + f' AND "Documentation[Checkboxes]" = {tagged} ' + jql[index:]
+    issues = api_request(f"https://jira-doc-tracker.atlassian.net/rest/api/3/search?jql={new_jql}&fields"
+                         f"=customfield_10029,customfield_10031,assignee,summary,status,customfield_10030"
+                         f"&startAt={start}")
+    if issues['total'] - issues['startAt'] <= issues['maxResults']:
+        return issues['issues']
+    else:
+        start += issues['maxResults']
+        return issues['issues'] + get_issues(filter_name, tagged, start=start)
 
+
+if __name__ == "__main__":
     # Inserting a header at the beginning of each sheet with the release number
 
     doc_file = "C:\\Users\\kiki\\OneDrive\\Documentation sheet.xlsx"
@@ -96,11 +111,8 @@ if __name__ == "__main__":
 
     # Getting all issues in a filter
 
-    query_A = api_request('https://jira-doc-tracker.atlassian.net/rest/api/3/filter/search?filterName="Team A R1"')
-    filter_A = query_A['values'][0]['self']
-    jql_A = api_request(filter_A)['jql']
-    issues_A = api_request(f"https://jira-doc-tracker.atlassian.net/rest/api/3/search?jql={jql_A}")
-    print(json.dumps(issues_A, sort_keys=True, indent=4))
+    result = get_issues("Team A R1", "Yes")
+    print(json.dumps(result, sort_keys=True, indent=4))
 
     # Inserting all documentation issues in a sheet
 
@@ -110,4 +122,3 @@ if __name__ == "__main__":
     #         add_to_doc_sheet(issue, sheet_A, 3)
 
     doc_wb.save(doc_file)
-    # print(json.dumps(data, sort_keys=True, indent=4)) I'm keeping this for the formatting
