@@ -88,9 +88,7 @@ class UpdateSheets(SecondaryView):
         self.back_button.grid(row=3, column=1, padx=20, pady=10, sticky="e")
 
     def update_sheet(self, team):
-        # This is just a placeholder functionality
-        filter_name = team + " R1"
-        print(main.get_issues(filter_name, "Yes"))
+        main.update_sheet(team)
 
 
 class JiraIssues(SecondaryView):

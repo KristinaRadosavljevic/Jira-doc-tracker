@@ -8,6 +8,12 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from config import username, password
 
 
+doc_file = "C:\\Users\\kiki\\OneDrive\\Documentation sheet.xlsx"
+issue_file = "C:\\Users\\kiki\\OneDrive\\Ticket sheet.xlsx"
+
+doc_wb = openpyxl.load_workbook(doc_file)
+
+
 def insert_headers(sheet, release, ticket_sheet=False):
     if sheet.merged_cells.ranges:
         sheet.merged_cells.ranges[0].shift(row_shift=1)
@@ -26,7 +32,7 @@ def insert_headers(sheet, release, ticket_sheet=False):
     sheet.insert_rows(3)
 
 
-def add_to_doc_sheet(issue, sheet, row):
+def add_to_sheet(issue, sheet, row):
     # Document numbers and done documentation
     if issue['fields']['customfield_10029']:
         docs = ""
@@ -60,6 +66,45 @@ def add_to_doc_sheet(issue, sheet, row):
     sheet[f'E{row}'].value = issue['fields']['summary']
     # Status of the ticket
     sheet[f'F{row}'].value = issue['fields']['status']['name']
+
+
+def update_sheet(team):
+    # Collecting the list of issues already in the sheet
+    sheet = doc_wb[team]
+    row = 3
+    sheet_issues = {}
+    while True:
+        if not sheet[f'D{row}'].value:
+            break
+        sheet_issues[sheet[f'D{row}'].value] = row
+        row += 1
+    # Iterating through the issues from the filter
+    filter_issues = get_issues(f'{team} R1', 'Yes')  # Replace the release number with a variable
+    if filter_issues:
+        for issue in filter_issues:
+            if issue['key'] in sheet_issues:
+                add_to_sheet(issue, sheet, sheet_issues[issue['key']])
+                del sheet_issues[issue['key']]
+            else:
+                cells_to_merge = []
+                if len(sheet.merged_cells.ranges) > 1:
+                    for merged_cells in sheet.merged_cells.ranges[1:]:
+                        cells_to_merge.append(move_cell_range(str(merged_cells)))
+                        sheet.unmerge_cells(str(merged_cells))
+                sheet.insert_rows(row)
+                add_to_sheet(issue, sheet, row)
+                if cells_to_merge:
+                    for cell_range in cells_to_merge:
+                        sheet.merge_cells(cell_range)
+                row += 1
+    doc_wb.save(doc_file)
+
+
+def move_cell_range(cell_range):
+    colon = cell_range.find(':')
+    first = int(cell_range[1:colon]) + 1
+    second = int(cell_range[colon + 2:]) + 1
+    return cell_range[0] + str(first) + cell_range[colon:colon + 2] + str(second)
 
 
 def api_request(url):
