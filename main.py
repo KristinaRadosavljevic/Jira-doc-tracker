@@ -32,7 +32,8 @@ def insert_headers(sheet, release, ticket_sheet=False):
     sheet.insert_rows(3)
 
 
-def add_to_sheet(issue, sheet, row):
+def add_to_sheet(issue, team, row):
+    sheet = doc_wb[team]
     # Document numbers and done documentation
     if issue['fields']['customfield_10029']:
         docs = ""
@@ -68,22 +69,48 @@ def add_to_sheet(issue, sheet, row):
     sheet[f'F{row}'].value = issue['fields']['status']['name']
 
 
+def add_to_special(issue, team):
+    sheet = doc_wb["Special"]
+    # Find the first empty row
+    row = 3
+    while sheet[f'A{row}'].value:  # TODO Make a new row here
+        row += 1
+    # Jira ticket number
+    sheet[f'A{row}'].value = issue['key']
+    # Summary/description
+    sheet[f'B{row}'].value = issue['fields']['summary']
+    # Status of the ticket
+    sheet[f'C{row}'].value = issue['fields']['status']['name']
+    # Done documentation
+    if issue['fields']['customfield_10031'] and "01" in issue['fields']['customfield_10031']:
+        sheet[f'D{row}'].value = "Yes"
+    else:
+        sheet[f'D{row}'].value = "No"
+    # Team
+    sheet[f'G{row}'] = team
+    # Assignee
+    if issue['fields']['assignee']:
+        sheet[f'H{row}'].value = issue['fields']['assignee']['displayName']
+    else:
+        sheet[f'H{row}'].value = "-"
+
+
 def update_sheet(team):
     # Collecting the list of issues already in the sheet
     sheet = doc_wb[team]
+    columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
     row = 3
     sheet_issues = {}
-    while True:
-        if not sheet[f'D{row}'].value:
-            break
-        sheet_issues[sheet[f'D{row}'].value] = row
+    while sheet[f'D{row}'].value:
+        if not sheet[f'D{row}'].font.strike:
+            sheet_issues[sheet[f'D{row}'].value] = row
         row += 1
     # Iterating through the issues from the filter
     filter_issues = get_issues(f'{team} R1', 'Yes')  # Replace the release number with a variable
     if filter_issues:
         for issue in filter_issues:
             if issue['key'] in sheet_issues:
-                add_to_sheet(issue, sheet, sheet_issues[issue['key']])
+                add_to_sheet(issue, team, sheet_issues[issue['key']])
                 del sheet_issues[issue['key']]
             else:
                 cells_to_merge = []
@@ -92,11 +119,19 @@ def update_sheet(team):
                         cells_to_merge.append(move_cell_range(str(merged_cells)))
                         sheet.unmerge_cells(str(merged_cells))
                 sheet.insert_rows(row)
-                add_to_sheet(issue, sheet, row)
+                add_to_sheet(issue, team, row)
                 if cells_to_merge:
                     for cell_range in cells_to_merge:
                         sheet.merge_cells(cell_range)
                 row += 1
+            if issue['fields']['customfield_10029'] and "01" in issue['fields']['customfield_10029']:
+                add_to_special(issue, team)  # TODO Try to move this to add_to_sheet()
+    # Highlighting the issues which were in the sheet but are not in the filter anymore
+    if sheet_issues:
+        for issue_id in sheet_issues.keys():
+            for column in columns:
+                cell = column + str(sheet_issues[issue_id])
+                sheet[cell].fill = PatternFill("solid", fgColor="f4b084")
     doc_wb.save(doc_file)
 
 

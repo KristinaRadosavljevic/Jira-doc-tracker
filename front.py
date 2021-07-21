@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 import webbrowser
 
 import main
@@ -89,6 +90,7 @@ class UpdateSheets(SecondaryView):
 
     def update_sheet(self, team):
         main.update_sheet(team)
+        messagebox.showinfo(title="Success", message="The sheet was successfully updated.")
 
 
 class JiraIssues(SecondaryView):
