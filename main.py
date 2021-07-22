@@ -14,10 +14,21 @@ issue_file = "C:\\Users\\kiki\\OneDrive\\Ticket sheet.xlsx"
 doc_wb = openpyxl.load_workbook(doc_file)
 
 
+def add_row(sheet, row, start_at=1):
+    cells_to_merge = []
+    if len(sheet.merged_cells.ranges) > start_at:
+        for merged_cells in sheet.merged_cells.ranges[start_at:]:
+            cells_to_merge.append(move_cell_range(str(merged_cells)))
+            sheet.unmerge_cells(str(merged_cells))
+    sheet.insert_rows(row)
+    if cells_to_merge:
+        for cell_range in cells_to_merge:
+            sheet.merge_cells(cell_range)
+
+
 def insert_headers(sheet, release, ticket_sheet=False):
-    if sheet.merged_cells.ranges:
-        sheet.merged_cells.ranges[0].shift(row_shift=1)
-    sheet.insert_rows(2)
+    add_row(sheet, 2, start_at=0)
+    add_row(sheet, 2, start_at=0)
     if sheet.title == "Special":
         sheet.merge_cells('A2:J2')
     elif ticket_sheet:
@@ -29,11 +40,14 @@ def insert_headers(sheet, release, ticket_sheet=False):
     cell.font = Font(bold=True)
     cell.fill = PatternFill("solid", fgColor="fff2cc")
     cell.alignment = Alignment(horizontal="center")
-    sheet.insert_rows(3)
 
 
 def add_to_sheet(issue, team, row):
     sheet = doc_wb[team]
+    # Checking whether to add the issue to the 'Special' sheet
+    if issue['fields']['customfield_10029'] and "01" in issue['fields']['customfield_10029'] and \
+            (not sheet[f'A{row}'].value or sheet[f'A{row}'].value.find("01") == -1):
+        add_to_special(issue, team)
     # Document numbers and done documentation
     if issue['fields']['customfield_10029']:
         docs = ""
@@ -73,8 +87,9 @@ def add_to_special(issue, team):
     sheet = doc_wb["Special"]
     # Find the first empty row
     row = 3
-    while sheet[f'A{row}'].value:  # TODO Make a new row here
+    while sheet[f'A{row}'].value:
         row += 1
+    add_row(sheet, row)
     # Jira ticket number
     sheet[f'A{row}'].value = issue['key']
     # Summary/description
@@ -113,19 +128,9 @@ def update_sheet(team):
                 add_to_sheet(issue, team, sheet_issues[issue['key']])
                 del sheet_issues[issue['key']]
             else:
-                cells_to_merge = []
-                if len(sheet.merged_cells.ranges) > 1:
-                    for merged_cells in sheet.merged_cells.ranges[1:]:
-                        cells_to_merge.append(move_cell_range(str(merged_cells)))
-                        sheet.unmerge_cells(str(merged_cells))
-                sheet.insert_rows(row)
+                add_row(sheet, row)
                 add_to_sheet(issue, team, row)
-                if cells_to_merge:
-                    for cell_range in cells_to_merge:
-                        sheet.merge_cells(cell_range)
                 row += 1
-            if issue['fields']['customfield_10029'] and "01" in issue['fields']['customfield_10029']:
-                add_to_special(issue, team)  # TODO Try to move this to add_to_sheet()
     # Highlighting the issues which were in the sheet but are not in the filter anymore
     if sheet_issues:
         for issue_id in sheet_issues.keys():
