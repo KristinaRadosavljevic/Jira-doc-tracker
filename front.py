@@ -84,13 +84,19 @@ class UpdateSheets(SecondaryView):
         self.team_frame("Update", self.update_sheet)
         ttk.Label(self, text="- or -", justify="center") \
             .grid(row=1, column=0, columnspan=2)
-        ttk.Button(self, text="Update All Sheets") \
+        ttk.Button(self, text="Update All Sheets", command=self.update_all) \
             .grid(row=2, column=0, columnspan=2, padx=20, pady=15)
         self.back_button.grid(row=3, column=1, padx=20, pady=10, sticky="e")
 
     def update_sheet(self, team):
         main.update_sheet(team)
         messagebox.showinfo(title="Success", message="The sheet was successfully updated.")
+
+    def update_all(self):
+        teams = ("Team A", "Team B", "Team C")  # maybe this can be extracted programmatically
+        for team in teams:
+            main.update_sheet(team)
+        messagebox.showinfo(title="Success", message="The sheets were successfully updated.")
 
 
 class JiraIssues(SecondaryView):
@@ -103,6 +109,7 @@ class JiraIssues(SecondaryView):
         self.new_frame.grid(row=1, column=0, columnspan=2, padx=15, pady=10, ipady=10, ipadx=10)
         self.done_frame = IssueFrame(self, text="Done Issues")
         self.done_frame.grid(row=2, column=0, columnspan=2, padx=15, pady=10, ipady=10, ipadx=10)
+        self.back_button.grid(row=3, column=1, padx=20, pady=10, sticky="e")
 
     def find_issues(self, team):
         self.new_frame.populate()
