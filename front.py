@@ -71,9 +71,15 @@ class NewProject(SecondaryView):
                        " and that they are correctly named.",
                   wraplength=350, justify="center", foreground="grey") \
             .grid(row=2, column=0, columnspan=5, padx=20, pady=10)
-        ttk.Button(self, text="Enter") \
+        ttk.Button(self, text="Enter", command=self.apply) \
             .grid(row=3, column=1, padx=20, pady=10)
         self.back_button.grid(row=3, column=3, padx=20, pady=10)
+
+    def apply(self):
+        release = self.entry.get()
+        main.insert_headers(release)
+        main.add_release_to_db(release)
+        messagebox.showinfo(title="Success", message="New project was added to the workbooks.")
 
 
 class UpdateSheets(SecondaryView):

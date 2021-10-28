@@ -5,12 +5,20 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 
 from config import username, password
+from db_models import ReleaseNumber
+from utils import get_session
 
 
 doc_file = "C:\\Users\\kiki\\OneDrive\\Documentation sheet.xlsx"
 issue_file = "C:\\Users\\kiki\\OneDrive\\Ticket sheet.xlsx"
 
 doc_wb = openpyxl.load_workbook(doc_file)
+issue_wb = openpyxl.load_workbook(issue_file)
+
+session = get_session()
+current_release_row = session.query(ReleaseNumber).first()
+current_release = current_release_row.rn if current_release_row else None
+session.close()
 
 
 def add_row(sheet, row, start_at=1):
@@ -25,20 +33,44 @@ def add_row(sheet, row, start_at=1):
             sheet.merge_cells(cell_range)
 
 
-def insert_headers(sheet, release, ticket_sheet=False):
-    add_row(sheet, 2, start_at=0)
-    add_row(sheet, 2, start_at=0)
-    if sheet.title == "Special":
-        sheet.merge_cells('A2:J2')
-    elif ticket_sheet:
-        sheet.merge_cells('A2:G2')
+def insert_headers(release):
+    for d_sheet in doc_wb:
+        add_row(d_sheet, 2, start_at=0)
+        add_row(d_sheet, 2, start_at=0)
+        if d_sheet.title == "Special":
+            d_sheet.merge_cells('A2:J2')
+        else:
+            d_sheet.merge_cells('A2:I2')
+        cell = d_sheet['A2']
+        cell.value = release
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill("solid", fgColor="fff2cc")
+        cell.alignment = Alignment(horizontal="center")
+    doc_wb.save(doc_file)
+    for i_sheet in issue_wb:
+        add_row(i_sheet, 2, start_at=0)
+        add_row(i_sheet, 2, start_at=0)
+        i_sheet.merge_cells('A2:G2')
+        cell = i_sheet['A2']
+        cell.value = release
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill("solid", fgColor="fff2cc")
+        cell.alignment = Alignment(horizontal="center")
+    issue_wb.save(issue_file)
+
+
+def add_release_to_db(release):
+    global current_release
+    session = get_session()
+    if current_release:
+        release_row = session.query(ReleaseNumber).first()
+        release_row.rn = release
     else:
-        sheet.merge_cells('A2:I2')
-    cell = sheet['A2']
-    cell.value = release
-    cell.font = Font(bold=True)
-    cell.fill = PatternFill("solid", fgColor="fff2cc")
-    cell.alignment = Alignment(horizontal="center")
+        new_row = ReleaseNumber(rn=release)
+        session.add(new_row)
+    session.commit()
+    session.close()
+    current_release = release
 
 
 def add_to_sheet(issue, team, row):
@@ -120,7 +152,7 @@ def update_sheet(team):
             sheet_issues[sheet[f'D{row}'].value] = row
         row += 1
     # Iterating through the issues from the filter
-    filter_issues = get_issues(f'{team} R1', 'Yes')  # Replace the release number with a variable
+    filter_issues = get_issues(f'{team} {current_release}', 'Yes')
     if filter_issues:
         for issue in filter_issues:
             if issue['key'] in sheet_issues:
@@ -167,7 +199,7 @@ def get_issues(filter_name, tagged, start=0):
     index = jql.find("ORDER BY") - 1
     new_jql = jql[0:index] + f' AND "Documentation[Checkboxes]" = {tagged} ' + jql[index:]
     issues = api_request(f"https://jira-doc-tracker.atlassian.net/rest/api/3/search?jql={new_jql}&fields"
-                         f"=customfield_10029,customfield_10031,assignee,summary,status,customfield_10030"
+                         f"=customfield_10029,customfield_10031,assignee,summary,status,customfield_10030,description"
                          f"&startAt={start}")
     if issues['total'] - issues['startAt'] <= issues['maxResults']:
         return issues['issues']
@@ -177,32 +209,10 @@ def get_issues(filter_name, tagged, start=0):
 
 
 if __name__ == "__main__":
-    # Inserting a header at the beginning of each sheet with the release number
-
-    doc_file = "C:\\Users\\kiki\\OneDrive\\Documentation sheet.xlsx"
-    issue_file = "C:\\Users\\kiki\\OneDrive\\Ticket sheet.xlsx"
-
-    doc_wb = openpyxl.load_workbook(doc_file)
-    sheet_A = doc_wb['Team A']
-    # for sheet in doc_wb:
-    #     insert_headers(sheet, "Release 1")
-    # doc_wb.save(doc_file)
-
-    issue_wb = openpyxl.load_workbook(issue_file)
-    # for sheet in issue_wb:
-    #     insert_headers(sheet, "Release 1", ticket_sheet=True)
-    # issue_wb.save(issue_file)
 
     # Getting all issues in a filter
 
-    result = get_issues("Team A R1", "Yes")
+    result = get_issues(f"Team B {current_release}", "Yes")
     print(json.dumps(result, sort_keys=True, indent=4))
 
-    # Inserting all documentation issues in a sheet
 
-    # for issue in issues_A['issues']:
-    #     if issue['fields']['customfield_10030'][0]['value'] == "Yes":
-    #         sheet_A.insert_rows(3)
-    #         add_to_doc_sheet(issue, sheet_A, 3)
-
-    doc_wb.save(doc_file)
