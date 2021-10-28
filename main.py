@@ -1,6 +1,5 @@
 import requests
 from requests.auth import HTTPBasicAuth
-import sqlite3
 import json
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
