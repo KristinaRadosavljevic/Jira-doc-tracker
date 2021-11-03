@@ -199,7 +199,7 @@ def get_issues(filter_name, tagged, start=0):
     index = jql.find("ORDER BY") - 1
     new_jql = jql[0:index] + f' AND "Documentation[Checkboxes]" = {tagged} ' + jql[index:]
     issues = api_request(f"https://jira-doc-tracker.atlassian.net/rest/api/3/search?jql={new_jql}&fields"
-                         f"=customfield_10029,customfield_10031,assignee,summary,status,customfield_10030,description"
+                         f"=customfield_10029,customfield_10031,assignee,summary,status,customfield_10030"
                          f"&startAt={start}")
     if issues['total'] - issues['startAt'] <= issues['maxResults']:
         return issues['issues']
@@ -214,5 +214,3 @@ if __name__ == "__main__":
 
     result = get_issues(f"Team B {current_release}", "Yes")
     print(json.dumps(result, sort_keys=True, indent=4))
-
-
