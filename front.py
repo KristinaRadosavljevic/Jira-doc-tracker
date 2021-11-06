@@ -111,36 +111,42 @@ class JiraIssues(SecondaryView):
         SecondaryView.__init__(self, parent, *args, **kwargs)
         self.parent.title("Review Jira Issues")
         self.team_frame("Find Issues", self.find_issues)
-        self.new_frame = IssueFrame(self, text="New Issues")
+        self.new_frame = IssuesFrame(self, "New", text="New Issues")
         self.new_frame.grid(row=1, column=0, columnspan=2, padx=15, pady=10, ipady=10, ipadx=10)
-        self.done_frame = IssueFrame(self, text="Done Issues")
+        self.done_frame = IssuesFrame(self, "Done", text="Done Issues")
         self.done_frame.grid(row=2, column=0, columnspan=2, padx=15, pady=10, ipady=10, ipadx=10)
         self.back_button.grid(row=3, column=1, padx=20, pady=10, sticky="e")
 
     def find_issues(self, team):
-        self.new_frame.populate()
-        self.done_frame.populate()
+        issue_list = main.get_issues(f"{team} {main.current_release}", "No")
+        self.new_frame.populate(issue_list)
+        self.done_frame.populate([])
 
 
-class IssueFrame(ttk.LabelFrame):
+class IssuesFrame(ttk.LabelFrame):
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, title, *args, **kwargs):
         ttk.LabelFrame.__init__(self, parent, *args, **kwargs)
+        self.title = title
         self.placeholder = ttk.Label(self, text="Select a team and click 'Find Issues'.",
                                      foreground="grey")
         self.placeholder.pack()
         self.issues = []
         self.row = 3
 
-    def populate(self):
+    def populate(self, issue_list):
         for item in self.winfo_children():
             item.destroy()
-        for row in range(5):  # Modify this for loop when everything's in place
-            if row < 3:
-                IssueRow(self, "PC-2", "Summary" * 6).pack()
-            else:
-                self.issues.append(("PC-2", "New one"))
-        self.config(text=f"New Issues ({len(self.issues)} more)")
+        if issue_list:
+            row = 0
+            for issue in issue_list:
+                if row < 3:
+                    IssueRow(self, issue['key'], issue['fields']['summary']).pack()
+                    row += 1
+                else:
+                    self.issues.append((issue['key'], issue['fields']['summary']))
+        if self.issues:
+            self.config(text=f"{self.title} Issues ({len(self.issues)} more)")
 
     def display_issue(self):
         if self.issues:
@@ -149,9 +155,9 @@ class IssueFrame(ttk.LabelFrame):
             del self.issues[0]
             self.row += 1
             if self.issues:
-                self.config(text=f"New Issues ({len(self.issues)} more)")
+                self.config(text=f"{self.title} Issues ({len(self.issues)} more)")
             else:
-                self.config(text="New Issues")
+                self.config(text=f"{self.title} Issues")
         if not self.winfo_children():
             ttk.Label(self, text="No more issues for this team.", foreground="grey").pack()
 

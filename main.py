@@ -4,8 +4,9 @@ import json
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 
+import utils
 from config import username, password
-from db_models import ReleaseNumber
+from db_models import ReleaseNumber, IssuesInSheet, IgnoredIssues
 from utils import get_session
 
 
@@ -68,6 +69,8 @@ def add_release_to_db(release):
     else:
         new_row = ReleaseNumber(rn=release)
         session.add(new_row)
+    session.query(IssuesInSheet).delete()
+    session.query(IgnoredIssues).delete()
     session.commit()
     session.close()
     current_release = release
