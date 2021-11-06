@@ -132,3 +132,4 @@ dmypy.json
 config.py
 .idea
 doc_tracker.db
+*.db
