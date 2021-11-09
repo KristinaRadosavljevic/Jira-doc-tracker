@@ -4,6 +4,8 @@ from tkinter import messagebox
 import webbrowser
 
 import main
+from utils import get_session
+from db_models import IssuesInSheet, IgnoredIssues
 
 
 class InitialView(ttk.Frame):
@@ -141,16 +143,16 @@ class IssuesFrame(ttk.LabelFrame):
             row = 0
             for issue in issue_list:
                 if row < 3:
-                    IssueRow(self, issue['key'], issue['fields']['summary']).pack()
+                    IssueRow(self, issue['key'], issue['fields']['summary'], issue['fields']['status']['name']).pack()
                     row += 1
                 else:
-                    self.issues.append((issue['key'], issue['fields']['summary']))
+                    self.issues.append((issue['key'], issue['fields']['summary'], issue['fields']['status']['name']))
         if self.issues:
             self.config(text=f"{self.title} Issues ({len(self.issues)} more)")
 
     def display_issue(self):
         if self.issues:
-            IssueRow(self, self.issues[0][0], self.issues[0][1]) \
+            IssueRow(self, self.issues[0][0], self.issues[0][1], self.issues[0][2]) \
                 .pack()
             del self.issues[0]
             self.row += 1
@@ -164,25 +166,40 @@ class IssuesFrame(ttk.LabelFrame):
 
 class IssueRow(ttk.Frame):
 
-    def __init__(self, parent, issue_nbr, summary, *args, **kwargs):
+    def __init__(self, parent, issue_nbr, summary, status, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.issue_nbr = issue_nbr
+        self.status = status
         self.link = ttk.Label(self, text=issue_nbr, foreground="blue",
                               font=('Arial', 10, 'underline'), cursor="hand2")
         self.link.grid(row=0, column=0, padx=5, pady=5)
         self.link.bind('<Button-1>', self.open_link)
         ttk.Label(self, text=summary, wraplength=250).grid(row=0, column=1, padx=5, pady=5)
-        ttk.Button(self, text="Add", command=self.delete_and_add).grid(row=0, column=2, padx=5, pady=5)
-        ttk.Button(self, text="Ignore", command=self.delete_and_add).grid(row=0, column=3, padx=5, pady=5)
-        ttk.Button(self, text="Leave for Later", command=self.delete_and_add).grid(row=0, column=4, padx=5, pady=5)
+        ttk.Button(self, text="Added", command=self.add).grid(row=0, column=2, padx=5, pady=5)
+        ttk.Button(self, text="Ignore", command=self.ignore).grid(row=0, column=3, padx=5, pady=5)
+        ttk.Button(self, text="Leave for Later", command=self.leave).grid(row=0, column=4, padx=5, pady=5)
 
     def open_link(self, event):
         webbrowser.open_new(f"https://jira-doc-tracker.atlassian.net/browse/{self.issue_nbr}")
 
-    def delete_and_add(self):
-        # This method is meant to be used inside the specific methods for each button
-        # Once this is in place, update the command property for the buttons
+    def add(self):
+        session = get_session()
+        session.add(IssuesInSheet(id=self.issue_nbr))
+        session.commit()
+        session.close()
+        self.destroy()
+        self.parent.display_issue()
+
+    def ignore(self):
+        session = get_session()
+        session.add(IgnoredIssues(id=self.issue_nbr, status=self.status))
+        session.commit()
+        session.close()
+        self.destroy()
+        self.parent.display_issue()
+
+    def leave(self):
         self.destroy()
         self.parent.display_issue()
 
