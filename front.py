@@ -120,9 +120,21 @@ class JiraIssues(SecondaryView):
         self.back_button.grid(row=3, column=1, padx=20, pady=10, sticky="e")
 
     def find_issues(self, team):
-        issue_list = main.get_issues(f"{team} {main.current_release}", "No")
-        self.new_frame.populate(issue_list)
-        self.done_frame.populate([])
+        new_list = []
+        done_list = []
+        list_all = main.get_issues(f"{team} {main.current_release}", "No")
+        for issue in list_all:
+            issue_nbr = issue['key']
+            session = get_session()
+            in_ignored = session.query(IgnoredIssues).filter_by(id=issue_nbr).first()
+            in_sheet = session.query(IssuesInSheet).filter_by(id=issue_nbr).first()
+            if not in_sheet and not in_ignored:
+                new_list.append(issue)
+            elif in_ignored and in_ignored.status != "Done" and issue['fields']['status']['name'] == "Done":
+                done_list.append(issue)
+            session.close()
+        self.new_frame.populate(new_list)
+        self.done_frame.populate(done_list)
 
 
 class IssuesFrame(ttk.LabelFrame):
@@ -193,7 +205,10 @@ class IssueRow(ttk.Frame):
 
     def ignore(self):
         session = get_session()
-        session.add(IgnoredIssues(id=self.issue_nbr, status=self.status))
+        if session.query(IgnoredIssues).filter_by(id=self.issue_nbr).first():
+            session.query(IgnoredIssues).filter_by(id=self.issue_nbr).first().status = self.status
+        else:
+            session.add(IgnoredIssues(id=self.issue_nbr, status=self.status))
         session.commit()
         session.close()
         self.destroy()
