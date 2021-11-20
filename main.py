@@ -1,21 +1,20 @@
-import requests
-from requests.auth import HTTPBasicAuth
-import json
+# This file contains the more complex functions used in the front-end application.
+# The functions in this file are mainly used to modify the Excel workbooks and get data from Jira.
+
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 
-import utils
-from config import username, password
 from db_models import ReleaseNumber, IssuesInSheet, IgnoredIssues
-from utils import get_session
+from utils import get_session, api_request
 
 
+# Loading the files containing the sheets for documentation and suspicious Jira issues
 doc_file = "C:\\Users\\kiki\\OneDrive\\Documentation sheet.xlsx"
 issue_file = "C:\\Users\\kiki\\OneDrive\\Ticket sheet.xlsx"
-
 doc_wb = openpyxl.load_workbook(doc_file)
 issue_wb = openpyxl.load_workbook(issue_file)
 
+# Storing the current release number reference
 session = get_session()
 current_release_row = session.query(ReleaseNumber).first()
 current_release = current_release_row.rn if current_release_row else None
@@ -23,6 +22,15 @@ session.close()
 
 
 def add_row(sheet, row, start_at=1):
+    """
+    Helper function which is called every time a new line is added to a sheet.
+    The main purpose is to handle merged cells.
+
+    Arguments:
+        sheet (str) - The name of the sheet in a workbook.
+        row (int) - The position at which a new row should be inserted.
+        start_at (int) - Set to 0 when adding headers so that the first set of merged cells is also moved.
+    """
     cells_to_merge = []
     if len(sheet.merged_cells.ranges) > start_at:
         for merged_cells in sheet.merged_cells.ranges[start_at:]:
@@ -34,7 +42,25 @@ def add_row(sheet, row, start_at=1):
             sheet.merge_cells(cell_range)
 
 
-def insert_headers(release):
+def move_cell_range(cell_range):
+    """
+    Helper function used to increase the row number in the provided cell range by one.
+
+    Arguments:
+        cell_range (str) - The original cell range.
+
+    Returns the modified cell range in string format.
+    """
+    colon = cell_range.find(':')
+    first = int(cell_range[1:colon]) + 1
+    second = int(cell_range[colon + 2:]) + 1
+    return cell_range[0] + str(first) + cell_range[colon:colon + 2] + str(second)
+
+
+def insert_headers():
+    """
+    Inserts the merged header rows with the current release number at the top of each sheet in both workbooks.
+    """
     for d_sheet in doc_wb:
         add_row(d_sheet, 2, start_at=0)
         add_row(d_sheet, 2, start_at=0)
@@ -43,7 +69,7 @@ def insert_headers(release):
         else:
             d_sheet.merge_cells('A2:I2')
         cell = d_sheet['A2']
-        cell.value = release
+        cell.value = current_release
         cell.font = Font(bold=True)
         cell.fill = PatternFill("solid", fgColor="fff2cc")
         cell.alignment = Alignment(horizontal="center")
@@ -53,7 +79,7 @@ def insert_headers(release):
         add_row(i_sheet, 2, start_at=0)
         i_sheet.merge_cells('A2:G2')
         cell = i_sheet['A2']
-        cell.value = release
+        cell.value = current_release
         cell.font = Font(bold=True)
         cell.fill = PatternFill("solid", fgColor="fff2cc")
         cell.alignment = Alignment(horizontal="center")
@@ -61,6 +87,13 @@ def insert_headers(release):
 
 
 def add_release_to_db(release):
+    """
+    Replaces the old release number in the database (if any) with the current one.
+    Also deletes all rows from the issues_in_sheet and ignored_issues tables.
+
+    Arguments:
+        release (str) - The new release number.
+    """
     global current_release
     session = get_session()
     if current_release:
@@ -77,6 +110,14 @@ def add_release_to_db(release):
 
 
 def add_to_sheet(issue, team, row):
+    """
+    Helper function for adding information about a single issue to the relevant sheet(s).
+
+    Arguments:
+        issue (dict) - The dictionary containing all the information about the Jira issue.
+        team (str) - The name of the team to whose sheet the issue should be added.
+        row (int) - The position at which to insert the new row.
+    """
     sheet = doc_wb[team]
     # Checking whether to add the issue to the 'Special' sheet
     if issue['fields']['customfield_10029'] and "01" in issue['fields']['customfield_10029'] and \
@@ -118,6 +159,13 @@ def add_to_sheet(issue, team, row):
 
 
 def add_to_special(issue, team):
+    """
+    Function parallel to add_to_sheet, but used when the issue should be added to the Special sheet.
+
+    Arguments:
+        issue (dict) - The dictionary containing all the information about the Jira issue.
+        team (str) - The name of the team with which the issue is associated.
+    """
     sheet = doc_wb["Special"]
     # Find the first empty row
     row = 3
@@ -145,6 +193,15 @@ def add_to_special(issue, team):
 
 
 def update_sheet(team):
+    """
+    The main function for adding issues which should be documented to the Documentation workbook.
+    Updates the information about each issue which is already in the sheet, adds new rows for issues
+    which are tagged to affect documentation but are not in the sheet, and highlights any rows with
+    issues which are in the sheet but not returned by the Jira filter anymore.
+
+    Arguments:
+        team (str) - The name of the team whose sheet should be updated.
+    """
     # Collecting the list of issues already in the sheet
     sheet = doc_wb[team]
     columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
@@ -174,28 +231,22 @@ def update_sheet(team):
     doc_wb.save(doc_file)
 
 
-def move_cell_range(cell_range):
-    colon = cell_range.find(':')
-    first = int(cell_range[1:colon]) + 1
-    second = int(cell_range[colon + 2:]) + 1
-    return cell_range[0] + str(first) + cell_range[colon:colon + 2] + str(second)
-
-
-def api_request(url):
-    auth = HTTPBasicAuth(username, password)
-    headers = {
-        "Accept": "application/json"
-    }
-    response = requests.request(
-        "GET",
-        url,
-        headers=headers,
-        auth=auth
-    )
-    return response.json()
-
-
 def get_issues(filter_name, tagged, start=0):
+    """
+    Gets the set of Jira issues based on the relevant Jira filter.
+    Only the issue data necessary for this application is returned (whether documentation is required,
+    which documents should be affected, which documents have been updated, assignee, summary, and
+    status of the issue).
+
+    Arguments:
+        filter_name (str) - The name of the Jira filter from which issues are taken.
+        tagged (str) - Whether the issue is tagged to affect documentation or not. Possible values are
+            'Yes' and 'No'.
+        start (int) - Internal argument used for handling pagination. Only used in recursion; do not
+            set manually.
+
+    Returns the list of dictionaries representing relevant Jira issues.
+    """
     query = api_request(f'https://jira-doc-tracker.atlassian.net/rest/api/3/filter/search?filterName="{filter_name}"')
     jira_filter = query['values'][0]['self']
     jql = api_request(jira_filter)['jql']
@@ -204,16 +255,9 @@ def get_issues(filter_name, tagged, start=0):
     issues = api_request(f"https://jira-doc-tracker.atlassian.net/rest/api/3/search?jql={new_jql}&fields"
                          f"=customfield_10029,customfield_10031,assignee,summary,status,customfield_10030"
                          f"&startAt={start}")
+    # Handling cases when the results are paginated
     if issues['total'] - issues['startAt'] <= issues['maxResults']:
         return issues['issues']
     else:
         start += issues['maxResults']
         return issues['issues'] + get_issues(filter_name, tagged, start=start)
-
-
-if __name__ == "__main__":
-
-    # Getting all issues in a filter
-
-    result = get_issues(f"Team B {current_release}", "Yes")
-    print(json.dumps(result, sort_keys=True, indent=4))
