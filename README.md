@@ -2,6 +2,14 @@
 Python application for collecting data relevant to the documentation process from Jira
 
 ## Table of Contents
+- [Introduction](#introduction)
+  - [Assumptions](#assumptions)
+  - [Aim of the project](#aim-of-the-project)
+- [Functionalities](#functionalities)
+- [Technologies](#technologies)
+- [Launch](#launch)
+  - [Special considerations when running the application](#special-considerations-when-running-the-application)
+- [Project status](#project-status)
 
 ## Introduction
 The Jira Documentation Tracker is an application primarily intended for technical writers 
@@ -33,8 +41,9 @@ release number is displayed in the merged row and new releases are always added 
 the table.
 - In both Excel workbooks, there are different tabs representing different development teams 
 whose documentation process the user is in charge of tracking. These teams are tracked from 
-Jira using the dedicated filters.
-- In the **Documentation** workbook, there are the following columns (in order):
+Jira using the dedicated filters, whose names consist of the team name and the release number, 
+separated by a single space.
+- In the Documentation workbook, there are the following columns (in order):
   - **Doc**: The number (code or name) of the document(s) which should be updated.
   - **Updated**: Whether the document(s) in the previous column have been updated.
   - **Assignee**: The developer assigned to the Jira issue, that is, the person who should 
@@ -43,9 +52,29 @@ Jira using the dedicated filters.
   - **Description**: A short description of the issue, copied from the **Summary** field in 
   Jira.
   - **Status**: The status of the Jira issue (for example, **Done** or **In Progress**).
-  - **Other columns**: There might be other columns which do not depend on Jira but are manually 
+  - **Other columns**: There are other columns which do not depend on Jira but are manually 
   filled in by the technical writer (such as whether the document(s) have been reviewed and 
   published, a place for additional comments, and so on).
+- In the Documentation workbook, there is a 'special' sheet where all the issues affecting the 
+'special' document are listed. The columns in this sheet differ from the ones in other sheets 
+described in the previous point, and are as follows (in order):
+  - **Jira ticket**: A unique Jira issue number.
+  - **Description**: A short description of the issue, copied from the **Summary** field in 
+  Jira.
+  - **Status**: The status of the Jira issue (for example, **Done** or **In Progress**).
+  - **Updated**: Whether the 'special' document has been updated.
+  - **Scale**: How large the change to the document is, that is, how much time documenting it 
+  is likely to take.
+  - **Member**: The technical writer in charge of documenting the issue.
+  - **Team**: The name of the development team to which the issue belongs.
+  - **Assignee**: The developer assigned to the Jira issue, that is, the person who should 
+  update the documentation.
+  - **Other columns**: There are other columns which do not depend on Jira but are manually 
+  filled in by the technical writer (such as which topic the 'special' document should affect, 
+  a place for additional comments, and so on).
+- There is a total of nine columns in each sheet of the Documentation workbook (except in the 
+'Special' sheet, where there are ten) and a total of seven columns in each sheet of the Ticket 
+workbook.
 ### Aim of the project
 There are two main problem areas that the Jira Documentation Tracker application aims to solve.
 #### Jira to Excel copying
@@ -81,10 +110,39 @@ For other technologies and associated libraries necessary for running the applic
 the **requirements.txt** file.
 
 ## Launch
+Before launching the application, perform the following steps (the recommended development 
+environment is PyCharm):
+1. Enter the following command in the terminal to install all the required packages: 
+`pip install -r requirements.txt`.
+2. Make a Python file in the main directory called **config.py**, which contains two variables:
+    - **username**: Assign to the username for the basic authentication for Jira, in string 
+   format.
+    - **password**: Assign to the corresponding password for Jira authentication, in string 
+   format.
+3. Edit the path to the Excel files containing Documentation and Ticket workbooks in the 
+**doc_file** and **issue_file** variables respectively (lines 12 and 13 in **main.py**).
+4. Edit the name of the 'Special' sheet, that is, the sheet in the Documentation workbook where 
+all the issues affecting the 'special' document are listed (lines 67 and 169 in **main.py**).
+5. Edit the code of the 'special' document by modifying all occurrences of `"01"` in **main.py**.
+6. Edit the names of the following custom fields in Jira to correspond to your Jira instance:
+    - **customfield_10029**: The reference to the **Docs** field (all occurrences in **main.py**).
+    - **customfield_10031**: The reference to the **Done Docs** field (all occurrences in 
+   **main.py**).
+    - **Documentation[Checkboxes]**: The reference to the **Documentation** field in the JQL 
+   (line 254 in **main.py**).
+7. Edit the team names in the list assigned to the **teams** variable (lines 85 and 156 in 
+**front.py**). The team names must be exactly the same as the titles of the tabs in the 
+Documentation workbook.
+8. Edit the URL to your Jira instance (line 290 in **front.py**).
+9. Upgrade the database to the latest migration by entering the following line in the terminal: 
+`alembic upgrade head`. (If you make changes to the database structure, generate a new 
+migration by entering `alembic revision --autogenerate -m "Example message"` and upgrading to 
+that migration again.)
+
+The Jira Documentation Tracker front-end application is opened by running the **front.py** file.
+### Special considerations when running the application
+- You must be logged into Jira on the machine from which you run the application.
+- Make sure that the Excel files are closed when the application is modifying them, otherwise 
+the files will be saved under a different name in the same directory instead of being overridden.
 
 ## Project status
-
-###Useful alembic commands
-Generate migration: `alembic revision --autogenerate -m "Example message"`
-
-Upgrade to latest version: `alembic upgrade head`

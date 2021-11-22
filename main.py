@@ -253,8 +253,7 @@ def get_issues(filter_name, tagged, start=0):
     index = jql.find("ORDER BY") - 1
     new_jql = jql[0:index] + f' AND "Documentation[Checkboxes]" = {tagged} ' + jql[index:]
     issues = api_request(f"https://jira-doc-tracker.atlassian.net/rest/api/3/search?jql={new_jql}&fields"
-                         f"=customfield_10029,customfield_10031,assignee,summary,status,customfield_10030"
-                         f"&startAt={start}")
+                         f"=customfield_10029,customfield_10031,assignee,summary,status&startAt={start}")
     # Handling cases when the results are paginated
     if issues['total'] - issues['startAt'] <= issues['maxResults']:
         return issues['issues']
