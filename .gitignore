@@ -131,3 +131,5 @@ dmypy.json
 # Config file
 config.py
 .idea
+doc_tracker.db
+*.db
