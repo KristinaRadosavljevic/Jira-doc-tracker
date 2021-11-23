@@ -9,10 +9,9 @@ Python application for collecting data relevant to the documentation process fro
 - [Technologies](#technologies)
 - [Launch](#launch)
   - [Special considerations when running the application](#special-considerations-when-running-the-application)
-- [Project status](#project-status)
 
 ## Introduction
-The Jira Documentation Tracker is an application primarily intended for technical writers 
+Jira Documentation Tracker is an application primarily intended for technical writers 
 and developers in charge of writing documentation who use Jira for project management. It is 
 intended as a tool to help them keep track of which Jira issues should be and have been 
 documented.
@@ -80,7 +79,7 @@ There are two main problem areas that the Jira Documentation Tracker application
 #### Jira to Excel copying
 Due to the highly customized nature of the Jira instance used for keeping track of documentation, 
 the information about the Jira issues which should affect documentation has to be manually 
-copied from Jira and then pasted into the Excel sheet. This process is low-effort and very 
+copied from Jira and then pasted into the Excel sheet. This process is low-effort but very 
 time-consuming.
 
 Jira Documentation Tracker automates this process completely, saving time and eliminating error.
@@ -96,10 +95,22 @@ those issues that the user has not reviewed. It also goes towards ensuring that 
 left unreviewed.
 
 ## Functionalities
+The following are three main functionalities of Jira Documentation Tracker, all accessible from 
+the initial view which is opened when the front-end application is run:
+- **Add a New Project**: Store the current release number in the database so that it is always 
+accessible until the next release number is specified. This functionality also adds release 
+headers in both workbooks.
+- **Update the Sheet**: Select a team and the application compares the data in the relevant 
+sheet to the team's Jira issues, adds any newly found issues to the sheet, and highlights the 
+rows with issues which are no longer found in the Jira filter. It is possible to update all 
+sheets in the workbook at once.
+- **Review Jira Issues**: For the selected team, you get a list of all untagged issues which you 
+have not seen/reviewed, as well as the ones which you have decided should not be documented but 
+have transitioned into status **Done** in the meantime.
 
 ## Technologies
 The following is a list of the most prominently used technologies and libraries in the project, 
-along which their version:
+along with their version:
 - Python 3.7
 - Jira REST API 3
 - openpyxl 3.0.7
@@ -115,14 +126,13 @@ environment is PyCharm):
 1. Enter the following command in the terminal to install all the required packages: 
 `pip install -r requirements.txt`.
 2. Make a Python file in the main directory called **config.py**, which contains two variables:
-    - **username**: Assign to the username for the basic authentication for Jira, in string 
+    - **username**: Assigned to the username for the basic authentication for Jira, in string 
    format.
-    - **password**: Assign to the corresponding password for Jira authentication, in string 
+    - **password**: Assigned to the corresponding password for Jira authentication, in string 
    format.
 3. Edit the path to the Excel files containing Documentation and Ticket workbooks in the 
 **doc_file** and **issue_file** variables respectively (lines 12 and 13 in **main.py**).
-4. Edit the name of the 'Special' sheet, that is, the sheet in the Documentation workbook where 
-all the issues affecting the 'special' document are listed (lines 67 and 169 in **main.py**).
+4. Edit the name of the 'Special' sheet (lines 67 and 169 in **main.py**).
 5. Edit the code of the 'special' document by modifying all occurrences of `"01"` in **main.py**.
 6. Edit the names of the following custom fields in Jira to correspond to your Jira instance:
     - **customfield_10029**: The reference to the **Docs** field (all occurrences in **main.py**).
@@ -136,7 +146,7 @@ Documentation workbook.
 8. Edit the URL to your Jira instance (line 290 in **front.py**).
 9. Upgrade the database to the latest migration by entering the following line in the terminal: 
 `alembic upgrade head`. (If you make changes to the database structure, generate a new 
-migration by entering `alembic revision --autogenerate -m "Example message"` and upgrading to 
+migration by entering `alembic revision --autogenerate -m "Example message"` and upgrade to 
 that migration again.)
 
 The Jira Documentation Tracker front-end application is opened by running the **front.py** file.
@@ -144,5 +154,3 @@ The Jira Documentation Tracker front-end application is opened by running the **
 - You must be logged into Jira on the machine from which you run the application.
 - Make sure that the Excel files are closed when the application is modifying them, otherwise 
 the files will be saved under a different name in the same directory instead of being overridden.
-
-## Project status
