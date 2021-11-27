@@ -33,13 +33,29 @@ def add_row(sheet, row, start_at=1):
     """
     cells_to_merge = []
     if len(sheet.merged_cells.ranges) > start_at:
-        for merged_cells in sheet.merged_cells.ranges[start_at:]:
+        range_list = sorted(sheet.merged_cells.ranges, key=cell_range_sort)
+        for merged_cells in range_list[1:]:
             cells_to_merge.append(move_cell_range(str(merged_cells)))
             sheet.unmerge_cells(str(merged_cells))
     sheet.insert_rows(row)
     if cells_to_merge:
         for cell_range in cells_to_merge:
             sheet.merge_cells(cell_range)
+
+
+def cell_range_sort(cell_range):
+    """
+    Helper function to extract the row number from the cell range object for sorting purposes.
+
+    Arguments:
+        cell_range (class object) - The cell range object.
+
+    Returns the row number as an integer.
+    """
+    range_string = str(cell_range)
+    end_index = range_string.find(':')
+    key = range_string[1:end_index]
+    return int(key)
 
 
 def move_cell_range(cell_range):
@@ -190,6 +206,7 @@ def add_to_special(issue, team):
         sheet[f'H{row}'].value = issue['fields']['assignee']['displayName']
     else:
         sheet[f'H{row}'].value = "-"
+    doc_wb.save(doc_file)
 
 
 def update_sheet(team):
